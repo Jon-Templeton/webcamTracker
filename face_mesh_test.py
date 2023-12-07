@@ -34,12 +34,8 @@ def find_pupil(image, landmarks, eye:list[int]):
     gray_eye = cv2.cvtColor(eye_image, cv2.COLOR_BGR2GRAY)
     blurred_eye = cv2.GaussianBlur(gray_eye, (3, 3), 0)
 
-    # Thresholding to isolate the darker region (pupil)
-    #_, thresholded_eye = cv2.threshold(blurred_eye, 150, 255, cv2.THRESH_BINARY)
+    # Thresholding to isolate the darker pupil region
     _, thresholded_eye = cv2.threshold(blurred_eye, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    #thresholded_eye = cv2.adaptiveThreshold(blurred_eye, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
-    # apply Canny Edge Detection
-    #thresholded_eye = cv2.Canny(blurred_eye, 50, 100)
 
     # Find contours
     contours, _ = cv2.findContours(thresholded_eye, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -63,24 +59,36 @@ def find_pupil(image, landmarks, eye:list[int]):
             cv2.circle(eye_image, (eye_x, eye_y), 7, (255, 255, 0), -1)
             
             # Determine if the pupil is looking forward or not
-            # Landmarks for right eye only
-            point1 = landmarks[386]
-            point2 = landmarks[374]
-            eye_size = np.sqrt((point1.x * width - point2.x * width) ** 2 + (point1.y * height - point2.y * height) ** 2)
-            threshold = eye_size / 2
+            # Calculate horizontal and vertical eye sizes
+            horizontal_point1, horizontal_point2 = landmarks[263], landmarks[362]
+            vertical_point1, vertical_point2 = landmarks[386], landmarks[374]
+
+            horizontal_eye_size = np.sqrt((horizontal_point1.x * width - horizontal_point2.x * width) ** 2 + 
+                                        (horizontal_point1.y * height - horizontal_point2.y * height) ** 2)
+            vertical_eye_size = np.sqrt((vertical_point1.x * width - vertical_point2.x * width) ** 2 + 
+                                        (vertical_point1.y * height - vertical_point2.y * height) ** 2)
+
+            # Set thresholds
+            horizontal_threshold = horizontal_eye_size / 4
+            vertical_threshold = vertical_eye_size / 4
 
             # Find the center of the eye
             eye_center_norm = np.mean([(landmarks[point].x, landmarks[point].y) for point in eye], axis=0)
             eye_center = (int(eye_center_norm[0] * width), int(eye_center_norm[1] * height))
-            distance_center = np.sqrt((eye_x - eye_center[0]) ** 2 + (eye_y - eye_center[1]) ** 2)
-        
-            if distance_center > threshold:
+
+            # Calculate horizontal and vertical distances from the center
+            horizontal_distance = abs(eye_x - eye_center[0])
+            vertical_distance = abs(eye_y - eye_center[1])
+
+            # Determine if the pupil is looking away
+            if horizontal_distance > horizontal_threshold or vertical_distance > vertical_threshold:
                 cv2.putText(image, 'Looking Away', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
             else:
-                cv2.putText(image, 'Looking Forward', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)  
+                cv2.putText(image, 'Looking Forward', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)   
                 
-            cv2.putText(image, f'Distance center: {distance_center:.2f}', (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-            cv2.putText(image, f'Threshold: {threshold:.2f}', (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            # Display text for horizontal and vertical distances from center
+            cv2.putText(image, f'Horizontal Distance: {horizontal_threshold - horizontal_distance:.2f}', (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(image, f'Vertical Distance: {vertical_threshold - vertical_distance:.2f}', (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
             cv2.imshow('Eye', eye_image)
             
             return (eye_x, eye_y)
