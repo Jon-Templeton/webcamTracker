@@ -7,7 +7,7 @@ class MicController:
         # Mic Properties
         self.mic_on = False
         self.mic_status_list = []
-        self.speaking_buffer_sec = 5
+        self.speaking_buffer_sec = 4
         
         # Eye Properties
         self.eyes_focus = False
@@ -25,12 +25,12 @@ class MicController:
         mouth_change = abs(self.mouth_opening_previous - mouth_opening)
         talking = mouth_change > self.mouth_threshold
         
-        # Track last 30 frames of talking
+        # Track last 31 frames of talking
         self.talking_list.append(talking)
         if len(self.talking_list) > 30:
             self.talking_list.pop(0)
         else:
-            # Need 30 frames of data before making a decision
+            # Need 31 frames of data before making a decision
             self.talking = False
             return
         
@@ -38,12 +38,12 @@ class MicController:
         self.talking = self.talking_list.count(True) >= (len(self.talking_list) * .66)
                 
     def _determine_eyes_focus(self, current_eyes_focus:bool):
-        # Track last 30 frames of eye focus
+        # Track last 31 frames of eye focus
         self.eye_focus_list.append(current_eyes_focus)
         if len(self.eye_focus_list) > 30:
             self.eye_focus_list.pop(0)
         else:
-            # Need 30 frames of data before making a decision
+            # Need 31 frames of data before making a decision
             self.eyes_focus = False
             return
         
@@ -67,7 +67,7 @@ class MicController:
         if len(self.mic_status_list) > 30:
             self.mic_status_list.pop(0)
         else: 
-            # Need 30 frames of data before making a decision
+            # Need 31 frames of data before making a decision
             # Leave mic status as is
             return "Gathering Data"
         
@@ -81,6 +81,7 @@ class MicController:
             self.mic_on = False
             return "Muted"
         else:
+            # Speaking or focus is False, but last_speak_time still within buffer
             # Mic should be on
             self.mic_on = True
             return "Listening"

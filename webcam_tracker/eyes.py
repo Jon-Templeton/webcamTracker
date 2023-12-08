@@ -19,7 +19,7 @@ class EyeTracker:
         pupil_centering_R = self._find_pupil("right")
         pupil_centering_L = self._find_pupil("left")
 
-        # Average differences if both eyes are visible
+        # Average values if both eyes are visible
         if not pupil_centering_L and not pupil_centering_R:
             # No eyes detected
             horizontal_centering = -1
@@ -46,7 +46,7 @@ class EyeTracker:
 
         return self.focus
 
-    def _process_image(self, direction:str):
+    def _process_image(self, direction:str) -> np.ndarray:
         height, width, _ = self.image.shape
         eye_landmarks = self.landmarks_num_R if direction == 'right' else self.landmarks_num_L
         
@@ -78,22 +78,22 @@ class EyeTracker:
             return pupil_contour
         return None
 
-    def _find_pupil(self, direction:str):
+    def _find_pupil(self, direction:str) -> tuple:
         height, width, _ = self.image.shape
         eye_landmarks = self.landmarks_num_R if direction == 'right' else self.landmarks_num_L
         
         # Find Pupil Contour
         pupil_contour = self._process_image(direction)
         if pupil_contour is None:
-            return ()
+            return None
 
         # Calculate the moments of the pupil contour
-        M = cv.moments(pupil_contour)
+        pupil_moments = cv.moments(pupil_contour)
 
         # Calculate the x and y coordinates of the center of the contour
-        if M["m00"] != 0:
-            eye_x = int(M["m10"] / M["m00"])
-            eye_y = int(M["m01"] / M["m00"])
+        if pupil_moments["m00"] != 0:
+            eye_x = int(pupil_moments["m10"] / pupil_moments["m00"])
+            eye_y = int(pupil_moments["m01"] / pupil_moments["m00"])
 
             # Determine if the pupil is looking forward or not
             # Calculate horizontal and vertical eye sizes
@@ -128,4 +128,4 @@ class EyeTracker:
             vertical_centering = vertical_threshold - vertical_distance
             
             return (horizontal_centering, vertical_centering)
-        return ()
+        return None
