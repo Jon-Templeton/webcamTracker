@@ -1,4 +1,5 @@
 from datetime import datetime
+import cv2 as cv
 
 class MicController:
     def __init__(self):
@@ -16,7 +17,7 @@ class MicController:
         # Mouth Properties
         self.talking = False
         self.mouth_opening_previous = 0.0
-        self.mouth_threshold = .005
+        self.mouth_threshold = .001
         self.talking_list = []
         self.last_speak_time = datetime.now().timestamp() - 60
         
@@ -24,6 +25,7 @@ class MicController:
         # Determine if lips moved from last frame
         mouth_change = abs(self.mouth_opening_previous - mouth_opening)
         talking = mouth_change > self.mouth_threshold
+        self.mouth_opening_previous = mouth_opening
         
         # Track last 31 frames of talking
         self.talking_list.append(talking)
@@ -50,15 +52,23 @@ class MicController:
         # If True for 66% of frames, eyes are focused
         self.eyes_focus = self.eye_focus_list.count(True) >= (len(self.eye_focus_list) * .66)
             
-    def set_mic_status(self, mouth_opening:float, current_eyes_focus:bool) -> str:
+    def set_mic_status(self, mouth_opening:float, current_eyes_focus:bool, image) -> str:
         # Update object properties
         self.current_time = datetime.now().timestamp()
         
         # Update Eye Properties
-        self._determine_eyes_focus(current_eyes_focus)           
+        self._determine_eyes_focus(current_eyes_focus)
+        if self.eyes_focus:
+            cv.putText(image, "Eyes Focused", (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
+        else:
+            cv.putText(image, "Eyes Not Focused", (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv.LINE_AA)
         
         # Update Mouth Properties
         self._determine_talking(mouth_opening)
+        if self.talking:
+            cv.putText(image, "Talking", (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
+        else:
+            cv.putText(image, "Not Talking", (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv.LINE_AA)
         
         if self.talking and self.eyes_focus: self.last_speak_time = self.current_time
         

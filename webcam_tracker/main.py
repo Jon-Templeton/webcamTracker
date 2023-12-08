@@ -25,9 +25,8 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     # Flip the image horizontally
     image = cv2.flip(image, 1)
-    
+    # Run Mediapipe Face Mesh
     results = face_mesh.process(image)
-
     # Convert the RGB image to BGR
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     
@@ -45,11 +44,13 @@ while cap.isOpened():
             
             # Microphone Control
             # Use eye_focus and mouth_opening to determine when mic should be on
-            mic_status = mic_controller.set_mic_status(mouth_opening, eyes_focus)
+            mic_status = mic_controller.set_mic_status(mouth_opening, eyes_focus, image)
 
             # Put text on image
-            cv2.putText(image, mic_status, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
+            if mic_status == "Listening":
+                cv2.putText(image, mic_status, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)  # Green Text
+            else:
+                cv2.putText(image, mic_status, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)  # Red Text
 
     # Display the annotated image
     cv2.imshow('webcamTracker', image)
