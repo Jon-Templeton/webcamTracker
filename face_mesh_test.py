@@ -16,18 +16,22 @@ def calculate_distance(landmark1, landmark2):
     x2, y2 = landmark2.x, landmark2.y
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-def find_pupil(image, landmarks, eye:list[int]):
+def find_pupil(image, landmarks, direction:str):
     height, width, _ = image.shape
-    mask = np.zeros((height, width), np.uint8)
-
-    # Define the hull of the eye
-    eye_points = [landmarks[point] for point in eye]
+    
+    if direction == 'right':
+        eye_landmarks = [263,466,388,387,386,385,384,398,362,382,381,380,374,373,390,249]
+    else:
+        eye_landmarks = [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246]
+    
+    # Define shape of the eye
+    eye_points = [landmarks[point] for point in eye_landmarks]
     hull = cv2.convexHull(np.array([(landmark.x * width, landmark.y * height) for landmark in eye_points], dtype=np.int32))
 
-    # Fill the convex hull to create a mask
+    mask = np.zeros((height, width), np.uint8)
     cv2.fillConvexPoly(mask, hull, 255)
 
-    # Apply the mask to the original image to focus on the eye
+    # Apply the mask to the original image
     eye_image = cv2.bitwise_and(image, image, mask=mask)
 
     # Preprocess the eye image
@@ -54,14 +58,14 @@ def find_pupil(image, landmarks, eye:list[int]):
             eye_x = int(M["m10"] / M["m00"])
             eye_y = int(M["m01"] / M["m00"])
 
-            # Optionally, draw the contour and the center on the image
-            cv2.drawContours(eye_image, [pupil_contour], -1, (0, 255, 0), 2)
-            cv2.circle(eye_image, (eye_x, eye_y), 7, (255, 255, 0), -1)
-            
             # Determine if the pupil is looking forward or not
             # Calculate horizontal and vertical eye sizes
-            horizontal_point1, horizontal_point2 = landmarks[263], landmarks[362]
-            vertical_point1, vertical_point2 = landmarks[386], landmarks[374]
+            if direction == 'right':
+                horizontal_point1, horizontal_point2 = landmarks[263], landmarks[362]
+                vertical_point1, vertical_point2 = landmarks[386], landmarks[374]
+            else:
+                horizontal_point1, horizontal_point2 = landmarks[133], landmarks[33]
+                vertical_point1, vertical_point2 = landmarks[159], landmarks[145]
 
             horizontal_eye_size = np.sqrt((horizontal_point1.x * width - horizontal_point2.x * width) ** 2 + 
                                         (horizontal_point1.y * height - horizontal_point2.y * height) ** 2)
@@ -73,25 +77,20 @@ def find_pupil(image, landmarks, eye:list[int]):
             vertical_threshold = vertical_eye_size / 4
 
             # Find the center of the eye
-            eye_center_norm = np.mean([(landmarks[point].x, landmarks[point].y) for point in eye], axis=0)
+            eye_center_norm = np.mean([(landmarks[point].x, landmarks[point].y) for point in eye_landmarks], axis=0)
             eye_center = (int(eye_center_norm[0] * width), int(eye_center_norm[1] * height))
 
             # Calculate horizontal and vertical distances from the center
             horizontal_distance = abs(eye_x - eye_center[0])
             vertical_distance = abs(eye_y - eye_center[1])
-
-            # Determine if the pupil is looking away
-            if horizontal_distance > horizontal_threshold or vertical_distance > vertical_threshold:
-                cv2.putText(image, 'Looking Away', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
-            else:
-                cv2.putText(image, 'Looking Forward', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)   
-                
-            # Display text for horizontal and vertical distances from center
-            cv2.putText(image, f'Horizontal Distance: {horizontal_threshold - horizontal_distance:.2f}', (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-            cv2.putText(image, f'Vertical Distance: {vertical_threshold - vertical_distance:.2f}', (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
-            cv2.imshow('Eye', eye_image)
             
-            return (eye_x, eye_y)
+            # How close is the pupil to the center?
+            # Positive value = eye is centered
+            # Negative value = eye is not centered
+            horizontal_difference = horizontal_threshold - horizontal_distance
+            vertical_difference = vertical_threshold - vertical_distance
+            
+            return (horizontal_difference, vertical_difference)
     return ()
 
 # Capture video from the default camera
@@ -119,19 +118,41 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
-            #mp_drawing.draw_landmarks(
-            #    image=image,
-            #    landmark_list=face_landmarks,
-            #    connections=mp_face_mesh.FACEMESH_CONTOURS,
-            #    landmark_drawing_spec=drawing_spec,
-            #    connection_drawing_spec=drawing_spec)
             
-            # Get landmarks for top and bottom of the mouth
+            # Eye Tracking
+            pupil_centering_R = find_pupil(image, face_landmarks.landmark, "right")
+            pupil_centering_L = find_pupil(image, face_landmarks.landmark, "left")
+
+            # Average differences if both eyes are visible
+            if not pupil_centering_R and not pupil_centering_L:
+                # No eyes detected
+                horizontal_difference = -1
+                vertical_difference = -1
+            elif not pupil_centering_R:
+                horizontal_difference = pupil_centering_L[0]
+                vertical_difference = pupil_centering_L[1]
+            elif not pupil_centering_L:
+                horizontal_difference = pupil_centering_R[0]
+                vertical_difference = pupil_centering_R[1]
+            else:
+                # Find the average of the horizontal and vertical differences
+                horizontal_difference = np.mean([pupil_centering_R[0], pupil_centering_L[0]])
+                vertical_difference = np.mean([pupil_centering_R[1], pupil_centering_L[1]])
+
+            cv2.putText(image, f'Both:{horizontal_difference}, {vertical_difference}', (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+            # Check if the pupil is centered
+            if horizontal_difference > 0 and vertical_difference > 0:
+                status_text = 'Looking Forward'
+            else:
+                status_text = 'Not Looking Forward !!!!!!!'
+
+            # Put text on image
+            cv2.putText(image, status_text, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            
+            # Mouth Movement Tracking
             top_lip = face_landmarks.landmark[13]
             bottom_lip = face_landmarks.landmark[14]
-            
-            eyeR = [263,466,388,387,386,385,384,398,362,382,381,380,374,373,390,249]
-            find_pupil(image, face_landmarks.landmark, eyeR)
             
             # Calculate mouth opening
             mouth_opening = calculate_distance(top_lip, bottom_lip)
