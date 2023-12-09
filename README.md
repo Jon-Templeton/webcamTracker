@@ -2,6 +2,19 @@
 
 This project demonstrates a unique approach to control a microphone using webcam-based interaction, focusing on pupil and mouth movements. The code, written in Python, leverages OpenCV and MediaPipe for sophisticated facial feature tracking, providing a unique way to manage audio input during various user activities.
 
+## Table of Contents
+
+- [Demo](#demo)
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Files](#files)
+- [Requirements](#requirements)
+- [Usage](#usage)
+
+## Demo
+
+https://github.com/Jon-Templeton/webcamTracker/assets/68302842/f03e1af3-7d84-49f6-9f0e-a15aff956d52
+
 ## Project Overview
 
 MediaPipe's FaceMesh is utilized to accurately track the position of the lips and the outline of the eyes. However, FaceMesh does not inherently track pupil movements. To overcome this, additional computer vision techniques such as masking, blurring, thresholding, and contour detection have been implemented to enable precise pupil tracking. This enhanced eye tracking is pivotal in determining the user's focus.
@@ -25,10 +38,6 @@ For optimal performance, it is recommended that the user's face be well-lit. Thi
 - **'mouth.py'**: Contains the MouthTracker class for monitoring mouth movement.
 - **'micController.py'**: Contains the MicController class. Uses eye focus and mouth movements to decide when microphone should listen.
 - **'mic_mute.py'**: Contains function to modify microphone input volume. *(Not currently implemented)*
-
-## Demo
-
-https://github.com/Jon-Templeton/webcamTracker/assets/68302842/f03e1af3-7d84-49f6-9f0e-a15aff956d52
 
 ## Requirements
 
