@@ -37,7 +37,7 @@ For optimal performance, it is recommended that the user's face be well-lit. Thi
 - **'eyes.py'**: Contains the EyeTracker class for pupil tracking and determining eye focus.
 - **'mouth.py'**: Contains the MouthTracker class for monitoring mouth movement.
 - **'micController.py'**: Contains the MicController class. Uses eye focus and mouth movements to decide when microphone should listen.
-- **'mic_mute.py'**: Contains function to modify microphone input volume. *(Not currently implemented)*
+- **'mic_mute.py'**: Contains function to modify MacOS microphone input volume. *(Not currently implemented)*
 
 ## Requirements
 

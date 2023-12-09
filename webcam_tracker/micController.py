@@ -2,7 +2,12 @@ from datetime import datetime
 import cv2 as cv
 
 class MicController:
+    """A class to control the microphone status based on eye focus and mouth movement analysis."""
+
     def __init__(self):
+        """
+        Initializes the MicController with default settings and timestamps.
+        """
         self.current_time = datetime.now().timestamp()
         
         # Mic Properties
@@ -22,6 +27,11 @@ class MicController:
         self.last_speak_time = datetime.now().timestamp() - 60
         
     def _determine_talking(self, mouth_opening:float):
+        """
+        Determines if the subject is talking based on recent movement of the mouth.
+
+        param mouth_opening: The current mouth opening measurement.
+        """
         # Determine if lips moved from last frame
         mouth_change = abs(self.mouth_opening_previous - mouth_opening)
         talking = mouth_change > self.mouth_threshold
@@ -40,6 +50,11 @@ class MicController:
         self.talking = self.talking_list.count(True) >= (len(self.talking_list) * .66)
                 
     def _determine_eyes_focus(self, current_eyes_focus:bool):
+        """
+        Determines if the subject's eyes are focused based on recent eye tracking data.
+
+        param current_eyes_focus: Boolean indicating the current focus status of the eyes.
+        """
         # Track last 31 frames of eye focus
         self.eye_focus_list.append(current_eyes_focus)
         if len(self.eye_focus_list) > 30:
@@ -53,6 +68,14 @@ class MicController:
         self.eyes_focus = self.eye_focus_list.count(True) >= (len(self.eye_focus_list) * .66)
             
     def set_mic_status(self, mouth_opening:float, current_eyes_focus:bool, image) -> str:
+        """
+        Sets the microphone status based on eye focus and mouth movement.
+
+        param mouth_opening: The current mouth opening measurement.
+        param current_eyes_focus: Boolean indicating the current focus status of the eyes.
+        param image: The image where the status text will be displayed.
+        return: A string indicating the current microphone status.
+        """
         # Update object properties
         self.current_time = datetime.now().timestamp()
         

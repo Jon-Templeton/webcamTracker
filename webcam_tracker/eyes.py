@@ -2,7 +2,15 @@ import cv2 as cv
 import numpy as np
 
 class EyeTracker:
+    """A class for tracking the focus of eyes in an image using facial landmarks and pupil tracking."""
+
     def __init__(self, image, landmarks):
+        """
+        Initialize the EyeTracker with an image and facial landmarks.
+
+        param image: The image to process.
+        param landmarks: Facial landmarks detected in the image.
+        """
         self.image = image
         self.focus = False
         
@@ -15,6 +23,11 @@ class EyeTracker:
         
         
     def track_focus(self) -> bool:
+        """
+        Track the focus of the pupils and determine whether the eyes are focused.
+
+        return: A boolean indicating if the eyes are focused or not.
+        """
         # Eye Tracking
         pupil_centering_R = self._find_pupil("right")
         pupil_centering_L = self._find_pupil("left")
@@ -47,6 +60,12 @@ class EyeTracker:
         return self.focus
 
     def _process_image(self, direction:str) -> np.ndarray:
+        """
+        Process the eye region of the image to prepare it for pupil detection.
+
+        param direction: A string indicating which eye to process ('left' or 'right').
+        return: The processed eye region as a numpy ndarray.
+        """
         height, width, _ = self.image.shape
         eye_landmarks = self.landmarks_num_R if direction == 'right' else self.landmarks_num_L
         
@@ -79,6 +98,12 @@ class EyeTracker:
         return None
 
     def _find_pupil(self, direction:str) -> tuple:
+        """
+        Find the pupil of the specified eye and calculate its centering.
+
+        param direction: A string indicating which eye ('left' or 'right').
+        return: A tuple containing the pupil's horizontal and vertical distance from center.
+        """
         height, width, _ = self.image.shape
         eye_landmarks = self.landmarks_num_R if direction == 'right' else self.landmarks_num_L
         
